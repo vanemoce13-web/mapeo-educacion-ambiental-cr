@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+ <!DOCTYPE html>
 <html>
 <head>
 <meta charset="utf-8">
@@ -53,19 +53,42 @@ La información recopilada contribuirá a visibilizar experiencias, fortalecer v
 </p>
 
 <p><b>Haga clic en el mapa para registrar una iniciativa.</b></p>
+<p id="contador"><b>🌎 Iniciativas registradas a nivel nacional: 0</b></p>
 
 <div id="map"></div>
 
 <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
 <script>
-var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbwu8-_rIY4IrFx3e7RyX5UXG7XSox_OZfOBnuv9qzpp7Oeyjy9RfYNKuM9jZ1SU4Zc9DA/exec";
+var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxX0YtSDiU4c94fBPLcc5Yd7Em7_RsSz6VPFFhKsGOCkUlTi6tABXSJtDYp4TeuvOe8dQ/exec";
 
-var map = L.map('map').setView([9.7489, -83.7534], 8);
+var map = L.map('map', {
+  center: [9.7489, -83.7534],
+  zoom: 8,
+  minZoom: 7,
+  maxBounds: [
+    [5.5, -88.5],
+    [12.5, -80.5]
+  ],
+  maxBoundsViscosity: 1.0
+});
 
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+var mapaBaseOSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap'
-}).addTo(map);
+});
+
+var mapaTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors, SRTM | OpenTopoMap'
+});
+
+mapaBaseOSM.addTo(map);
+
+var mapasBase = {
+  "OpenStreetMap": mapaBaseOSM,
+  "Topográfico": mapaTopo
+};
+
+L.control.layers(mapasBase).addTo(map);
 
 var latSeleccionada = null;
 var lngSeleccionada = null;
@@ -170,30 +193,31 @@ function crearPopup(item){
 }
 
 function cargarIniciativas(){
+  var script = document.createElement("script");
+  script.src = WEB_APP_URL + "?callback=mostrarIniciativas";
+  document.body.appendChild(script);
+}
 
-  fetch(WEB_APP_URL)
-    .then(response => response.json())
-    .then(data => {
+function mostrarIniciativas(data){
 
-      data.forEach(function(item){
+  document.getElementById("contador").innerHTML =
+    "<b>🌎 Iniciativas registradas a nivel nacional: " + data.length + "</b>";
 
-        var lat = parseFloat(item.lat);
-        var lng = parseFloat(item.lng);
+  data.forEach(function(item){
 
-        if(!isNaN(lat) && !isNaN(lng)){
+    var lat = parseFloat(item.lat);
+    var lng = parseFloat(item.long);
 
-          L.marker([lat, lng])
-            .addTo(map)
-            .bindPopup(crearPopup(item));
+    if(!isNaN(lat) && !isNaN(lng)){
 
-        }
+      L.marker([lat, lng])
+        .addTo(map)
+        .bindPopup(crearPopup(item));
 
-      });
+    }
 
-    })
-    .catch(error => {
-      console.log("Error al cargar iniciativas:", error);
-    });
+  });
+
 }
 
 function guardarIniciativa(){
@@ -209,7 +233,7 @@ function guardarIniciativa(){
     descripcion: document.getElementById("descripcion").value,
     contacto: document.getElementById("contacto").value,
     lat: latSeleccionada,
-    lng: lngSeleccionada
+    long: lngSeleccionada
   };
 
   fetch(WEB_APP_URL, {
@@ -221,14 +245,18 @@ function guardarIniciativa(){
     body: JSON.stringify(datos)
   });
 
+  map.closePopup();
+
   L.marker([latSeleccionada, lngSeleccionada])
     .addTo(map)
     .bindPopup(crearPopup(datos))
     .openPopup();
 
-  alert("Iniciativa registrada. Muchas gracias por su aporte.");
+  var contador = document.getElementById("contador");
+  var numeroActual = parseInt(contador.innerText.replace(/\D/g, ""));
+  contador.innerHTML = "<b>🌎 Iniciativas registradas a nivel nacional: " + (numeroActual + 1) + "</b>";
 
-  map.closePopup();
+  alert("Iniciativa registrada. Muchas gracias por su aporte.");
 }
 
 </script>
