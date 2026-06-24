@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Visor de iniciativas de educación ambiental</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin: 0;
+  padding: 20px;
+  background: #f5f5f5;
+}
+
+h1, p{
+  text-align: center;
+}
+
+.contenedor{
+  max-width: 1100px;
+  margin: auto;
+}
+
+.tarjetas{
+  display: flex;
+  gap: 15px;
+  flex-wrap: wrap;
+  justify-content: center;
+  margin-bottom: 25px;
+}
+
+.tarjeta{
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  min-width: 220px;
+  text-align: center;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+.graficos{
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 25px;
+}
+
+.grafico{
+  background: white;
+  padding: 20px;
+  border-radius: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+table{
+  width: 100%;
+  border-collapse: collapse;
+  background: white;
+  margin-top: 25px;
+}
+
+th, td{
+  border: 1px solid #ddd;
+  padding: 8px;
+  font-size: 14px;
+}
+
+th{
+  background: #e8e8e8;
+}
+
+.boton{
+  display: inline-block;
+  margin: 10px;
+  padding: 10px 15px;
+  background: #2e7d32;
+  color: white;
+  text-decoration: none;
+  border-radius: 6px;
+}
+
+@media(max-width: 800px){
+  .graficos{
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+</head>
+
+<body>
+
+<div class="contenedor">
+
+<h1>Visor de iniciativas de educación ambiental</h1>
+
+<p>
+Este visor presenta un resumen de las iniciativas registradas en el mapeo colaborativo impulsado por la Red por la Educación Ambiental.
+</p>
+
+<p>
+<a class="boton" href="index.html">Volver al mapa de registro</a>
+</p>
+
+<div class="tarjetas">
+  <div class="tarjeta">
+    <h2 id="total">0</h2>
+    <p>Total de iniciativas registradas</p>
+  </div>
+
+  <div class="tarjeta">
+    <h2 id="activas">0</h2>
+    <p>Iniciativas activas</p>
+  </div>
+
+  <div class="tarjeta">
+    <h2 id="organizaciones">0</h2>
+    <p>Tipos de organización registrados</p>
+  </div>
+</div>
+
+<div class="graficos">
+  <div class="grafico">
+    <h3>Iniciativas por temática</h3>
+    <canvas id="graficoTematica"></canvas>
+  </div>
+
+  <div class="grafico">
+    <h3>Iniciativas por tipo de organización</h3>
+    <canvas id="graficoOrganizacion"></canvas>
+  </div>
+
+  <div class="grafico">
+    <h3>Iniciativas por escala</h3>
+    <canvas id="graficoEscala"></canvas>
+  </div>
+
+  <div class="grafico">
+    <h3>Estado de las iniciativas</h3>
+    <canvas id="graficoEstado"></canvas>
+  </div>
+</div>
+
+<h2>Tabla de iniciativas registradas</h2>
+
+<table>
+  <thead>
+    <tr>
+      <th>Nombre</th>
+      <th>Organización</th>
+      <th>Tipo</th>
+      <th>Temática</th>
+      <th>Público meta</th>
+      <th>Escala</th>
+      <th>Estado</th>
+    </tr>
+  </thead>
+  <tbody id="tablaDatos"></tbody>
+</table>
+
+</div>
+
+<script>
+var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxmj4hDVL4SvuIhxI7rjzPILkVAkFFhpvks4ZEAxvtVmFDIT7LybYr1znr1f8koDAXm4A/exec";
+
+function cargarDatos(){
+  var script = document.createElement("script");
+  script.src = WEB_APP_URL + "?callback=mostrarDatos";
+  document.body.appendChild(script);
+}
+
+function contarPorCampo(data, campo){
+  var conteo = {};
+
+  data.forEach(function(item){
+    var valor = item[campo] || "Sin información";
+    conteo[valor] = (conteo[valor] || 0) + 1;
+  });
+
+  return conteo;
+}
+
+function crearGrafico(idCanvas, datos, tipo){
+  var etiquetas = Object.keys(datos);
+  var valores = Object.values(datos);
+
+  new Chart(document.getElementById(idCanvas), {
+    type: tipo,
+    data: {
+      labels: etiquetas,
+      datasets: [{
+        label: "Cantidad",
+        data: valores
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: {
+        legend: {
+          display: tipo === "pie"
+        }
+      }
+    }
+  });
+}
+
+function mostrarDatos(data){
+
+  document.getElementById("total").innerText = data.length;
+
+  var activas = data.filter(function(item){
+    return item.estado === "Activa";
+  }).length;
+
+  document.getElementById("activas").innerText = activas;
+
+  var tiposOrganizacion = new Set(
+    data.map(function(item){ return item.tipoorganizacion; }).filter(Boolean)
+  );
+
+  document.getElementById("organizaciones").innerText = tiposOrganizacion.size;
+
+  crearGrafico("graficoTematica", contarPorCampo(data, "tematica"), "bar");
+  crearGrafico("graficoOrganizacion", contarPorCampo(data, "tipoorganizacion"), "bar");
+  crearGrafico("graficoEscala", contarPorCampo(data, "escala"), "pie");
+  crearGrafico("graficoEstado", contarPorCampo(data, "estado"), "pie");
+
+  var tabla = document.getElementById("tablaDatos");
+
+  data.forEach(function(item){
+    var fila = `
+      <tr>
+        <td>${item.nombre || ""}</td>
+        <td>${item.organizacion || ""}</td>
+        <td>${item.tipoorganizacion || ""}</td>
+        <td>${item.tematica || ""}</td>
+        <td>${item.publico || ""}</td>
+        <td>${item.escala || ""}</td>
+        <td>${item.estado || ""}</td>
+      </tr>
+    `;
+
+    tabla.innerHTML += fila;
+  });
+}
+
+cargarDatos();
+</script>
+
+</body>
+</html>
