@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Conociendo y mapeando las iniciativas de educación ambiental en Costa Rica</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+}
+
+h1{
+  text-align:center;
+  padding:10px;
+  margin-bottom:0;
+}
+
+p{
+  text-align:center;
+  margin-top:5px;
+  padding-left:20px;
+  padding-right:20px;
+}
+
+#map{
+  height:82vh;
+  width:100%;
+}
+
+input, select, textarea{
+  width:230px;
+}
+
+button{
+  padding:8px;
+  cursor:pointer;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Conociendo y mapeando las iniciativas de educación ambiental en Costa Rica</h1>
+
+<p>
+La Red por la Educación Ambiental promueve este esfuerzo para conocer y mapear
+las iniciativas de educación ambiental que se desarrollan en Costa Rica.
+Le invitamos a registrar su iniciativa haciendo clic sobre el mapa.
+La información recopilada contribuirá a visibilizar experiencias, fortalecer vínculos entre actores y construir una visión nacional de la educación ambiental en el país.
+</p>
+
+<p><b>Haga clic en el mapa para registrar una iniciativa.</b></p>
+<p id="contador"><b>🌎 Iniciativas registradas a nivel nacional: 0</b></p>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
+var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxmj4hDVL4SvuIhxI7rjzPILkVAkFFhpvks4ZEAxvtVmFDIT7LybYr1znr1f8koDAXm4A/exec";
+
+var map = L.map('map', {
+  center: [9.7489, -83.7534],
+  zoom: 8,
+  minZoom: 7,
+  maxBounds: [
+    [5.5, -88.5],
+    [12.5, -80.5]
+  ],
+  maxBoundsViscosity: 1.0
+});
+
+var mapaBaseOSM = L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap'
+});
+
+var mapaTopo = L.tileLayer('https://{s}.tile.opentopomap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors, SRTM | OpenTopoMap'
+});
+
+mapaBaseOSM.addTo(map);
+
+var mapasBase = {
+  "OpenStreetMap": mapaBaseOSM,
+  "Topográfico": mapaTopo
+};
+
+L.control.layers(mapasBase).addTo(map);
+
+var latSeleccionada = null;
+var longSeleccionada = null;
+
+cargarIniciativas();
+
+map.on('click', function(e){
+
+  latSeleccionada = e.latlng.lat;
+  longSeleccionada = e.latlng.lng;
+
+  var popupContent = `
+    <b>Nueva iniciativa de educación ambiental</b><br><br>
+
+    Nombre de la iniciativa:<br>
+    <input type="text" id="nombre" placeholder="Ej. Guardianes del Río"><br><br>
+
+    Nombre de la organización:<br>
+    <input type="text" id="organizacion" placeholder="Nombre de la organización"><br><br>
+    
+    Tipo de organización:<br>
+    <select id="tipoorganizacion">
+      <option value="">Seleccione una opción</option>
+      <option value="Centro educativo">Centro educativo</option>
+      <option value="Universidad">Universidad</option>
+      <option value="ONG">ONG</option>
+      <option value="ASADA">ASADA</option>
+      <option value="Municipalidad">Municipalidad</option>
+      <option value="Institución pública">Institución pública</option>
+      <option value="Empresa">Empresa</option>
+      <option value="Organización comunitaria">Organización comunitaria</option>
+      <option value="Otro">Otro</option>
+    </select><br><br>
+    
+    Temática principal:<br>
+    <select id="tematica">
+      <option value="">Seleccione una opción</option>
+      <option value="Recursos hídricos">Recursos hídricos</option>
+      <option value="Conservación de bosques">Conservación de bosques</option>
+      <option value="Biodiversidad y conservación">Biodiversidad y conservación</option>
+      <option value="Cambio climático">Cambio climático</option>
+      <option value="Gestión de residuos">Gestión de residuos</option>
+      <option value="Educación ambiental general">Educación ambiental general</option>
+      <option value="Otra">Otra</option>
+    </select><br><br>
+
+    Público meta:<br>
+    <select id="publico">
+      <option value="">Seleccione una opción</option>
+      <option value="Niñez">Niñez</option>
+      <option value="Juventud">Juventud</option>
+      <option value="Personas adultas">Personas adultas</option>
+      <option value="Comunidades">Comunidades</option>
+      <option value="Público general">Público general</option>
+      <option value="Otro">Otro</option>
+    </select><br><br>
+
+    Escala de la iniciativa:<br>
+    <select id="escala">
+      <option value="">Seleccione una opción</option>
+      <option value="Local">Local</option>
+      <option value="Cantonal">Cantonal</option>
+      <option value="Regional">Regional</option>
+      <option value="Nacional">Nacional</option>
+    </select><br><br>
+
+    Estado:<br>
+    <select id="estado">
+      <option value="">Seleccione una opción</option>
+      <option value="Activa">Activa</option>
+      <option value="En planificación">En planificación</option>
+      <option value="Finalizada">Finalizada</option>
+    </select><br><br>
+
+    Descripción breve:<br>
+    <textarea id="descripcion" rows="4" placeholder="Describa brevemente qué hace la iniciativa"></textarea><br><br>
+
+    Correo electrónico de contacto:<br>
+    <input type="text" id="contacto" placeholder="Correo"><br><br>
+
+    <button onclick="guardarIniciativa()">Guardar iniciativa</button>
+  `;
+
+  L.popup()
+    .setLatLng(e.latlng)
+    .setContent(popupContent)
+    .openOn(map);
+});
+
+function crearPopup(item){
+  return `
+    <b>${item.nombre || "Iniciativa sin nombre"}</b><br>
+    Organización: ${item.organizacion || ""}<br>
+    Tipo de organización: ${item.tipoorganizacion || ""}<br>
+    Temática: ${item.tematica || ""}<br>
+    Público meta: ${item.publico || ""}<br>
+    Escala: ${item.escala || ""}<br>
+    Estado: ${item.estado || ""}<br><br>
+    ${item.descripcion || ""}<br><br>
+    Contacto: ${item.contacto || ""}
+  `;
+}
+
+function cargarIniciativas(){
+  var script = document.createElement("script");
+  script.src = WEB_APP_URL + "?callback=mostrarIniciativas";
+  document.body.appendChild(script);
+}
+
+function mostrarIniciativas(data){
+
+  document.getElementById("contador").innerHTML =
+    "<b>🌎 Iniciativas registradas a nivel nacional: " + data.length + "</b>";
+
+  data.forEach(function(item){
+
+    var lat = parseFloat(item.lat);
+    var long = parseFloat(item.long || item.lng);
+
+    if(!isNaN(lat) && !isNaN(long)){
+
+      L.marker([lat, long])
+        .addTo(map)
+        .bindPopup(crearPopup(item));
+
+    }
+
+  });
+
+}
+
+function guardarIniciativa(){
+
+  var datos = {
+    nombre: document.getElementById("nombre").value,
+    organizacion: document.getElementById("organizacion").value,
+    tipoorganizacion: document.getElementById("tipoorganizacion").value,
+    tematica: document.getElementById("tematica").value,
+    publico: document.getElementById("publico").value,
+    escala: document.getElementById("escala").value,
+    estado: document.getElementById("estado").value,
+    descripcion: document.getElementById("descripcion").value,
+    contacto: document.getElementById("contacto").value,
+    lat: latSeleccionada,
+    long: longSeleccionada,
+    lng: longSeleccionada
+  };
+
+  fetch(WEB_APP_URL, {
+    method: "POST",
+    mode: "no-cors",
+    headers: {
+      "Content-Type": "text/plain"
+    },
+    body: JSON.stringify(datos)
+  });
+
+  map.closePopup();
+
+  L.marker([latSeleccionada, longSeleccionada])
+    .addTo(map)
+    .bindPopup(crearPopup(datos))
+    .openPopup();
+
+  var contador = document.getElementById("contador");
+  var numeroActual = parseInt(contador.innerText.replace(/\D/g, ""));
+  contador.innerHTML = "<b>🌎 Iniciativas registradas a nivel nacional: " + (numeroActual + 1) + "</b>";
+
+  alert("Iniciativa registrada. Muchas gracias por su aporte.");
+}
+
+</script>
+
+</body>
+</html>
