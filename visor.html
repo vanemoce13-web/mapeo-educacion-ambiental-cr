@@ -161,6 +161,30 @@ Este visor presenta un resumen de las iniciativas registradas en el mapeo colabo
 </div>
 
 <script>
+<p>
+La Red por la Educación Ambiental promueve este esfuerzo para conocer y mapear
+las iniciativas de educación ambiental que se desarrollan en Costa Rica.
+Le invitamos a registrar su iniciativa haciendo clic sobre el mapa.
+La información recopilada contribuirá a visibilizar experiencias, fortalecer vínculos entre actores y construir una visión nacional de la educación ambiental en el país.
+</p>
+
+<p><b>Haga clic en el mapa para registrar una iniciativa.</b></p>
+<p id="contador"><b>🌎 Iniciativas registradas a nivel nacional: 0</b></p>
+<p>
+  <a href="visor.html"
+     style="background:#2e7d32;
+            color:white;
+            padding:10px 15px;
+            text-decoration:none;
+            border-radius:6px;">
+    📊 Ver visor de resultados
+  </a>
+</p>
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+<script>
 var WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxmj4hDVL4SvuIhxI7rjzPILkVAkFFhpvks4ZEAxvtVmFDIT7LybYr1znr1f8koDAXm4A/exec";
 
 function cargarDatos(){
